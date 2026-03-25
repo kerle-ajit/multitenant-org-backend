@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  name        String
+  ownerEmail  String       @unique
+  ownerName   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  users       User[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  emailLogs   EmailLog[]
+}
+
+model User {
+  id          String     @id @default(cuid())
+  tenantId    String
+  email       String     @unique
+  name        String
+  role        UserRole   // OWNER | MEMBER
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  auditLogs   AuditLog[]
+}
+
+
+enum UserRole {
+  OWNER
+  MEMBER
+}
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  tenantId      String
+  keyHash       String    // hashed API key
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+  rotatedFromId String?   // Previous key if rotated for 15 min grace
+
+  // Relations
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  rotatedFrom   ApiKey?   @relation("ApiKeyRotation", fields: [rotatedFromId], references: [id])
+  rotatedTo     ApiKey[]  @relation("ApiKeyRotation")
+}
+
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  action      String
+  timestamp   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
+  prevHash    String?
+  hash        String
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+}
+
+model EmailLog {
+  id          String    @id @default(cuid())
+  tenantId    String
+  recipient   String
+  template    String
+  status      String
+  attempts    Int        @default(0)
+  error       String?
+  createdAt   DateTime   @default(now())
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+}
