@@ -1,3 +1,125 @@
+# 🚀 Docker Setup & API Testing Guide
+
+## Run Application with Docker
+
+Follow these steps to start the project:
+
+### 1. Build and start services
+docker compose up --build
+
+### 2. Run database migration
+docker compose exec app npx prisma migrate deploy
+
+### 3. Seed the database
+docker compose exec app npm run seed
+
+After running seed, you will get important values in terminal:
+
+- x-api-key → used for API authentication  
+- x-user-id → owner user ID   
+- COPY all values for further Testing Api
+
+Example:
+Base URL: http://localhost:4000  
+x-api-key: alpha_raw_key_1234567890  
+x-user-id: alpha-owner-1  
+oldKeyId: tenant-alpha-key-1  
+
+Save these values. You will need them to test APIs.
+
+---
+
+## API Testing
+
+You can test APIs using Postman or curl.
+
+### Create Tenant
+POST /tenants
+
+{
+  "name": "Acme Corp",
+  "ownerEmail": "owner@acme.com"
+}
+
+---
+
+### Create User
+POST /users
+
+{
+  "name": "Jane Doe",
+  "email": "owner@acme.com",
+  "role": "OWNER"
+}
+
+---
+
+### Generate API Key
+POST /apikeys/generate
+
+Headers:
+x-api-key: alpha_raw_key_1234567890  
+x-user-id: alpha-owner-1  
+Idempotency-Key: rotate-001  
+
+---
+
+### Rotate API Key
+curl -X POST "$BASE/apikeys/rotate" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: alpha_raw_key_1234567890" \
+  -H "x-user-id: alpha-owner-1" \
+  -H "Idempotency-Key: rotate-001" \
+  -d '{ "oldKeyId":"tenant-alpha-key-1" }'
+
+---
+
+### Check Email Logs
+GET /emails/logs
+
+---
+
+### Verify Audit Logs
+curl "$BASE/audit/verify" \
+  -H "x-api-key: <NEW_RAW_KEY>" \
+  -H "x-user-id: alpha-owner-1"
+
+---
+
+### Fetch Audit Logs
+GET /audit/logs?cursor=<id>
+
+---
+
+## Notes
+
+- Always send correct headers (x-api-key, x-user-id)
+- If API not working, check API key, user ID, and headers
+- Use values from seed output
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Multi-Tenant Backend API
 
 TypeScript + Express backend with:
@@ -59,18 +181,11 @@ Use your own created by creating .env
 - DB trigger migration prevents update/delete on `AuditLog`.
 - `GET /audit/logs` supports cursor pagination.
 
-## Main Endpoints
-
-- `POST /tenants`
-- `POST /users`
-- `POST /apikeys/generate`
-- `POST /apikeys/rotate`
-- `GET /emails/logs`
-- `GET /audit/verify`
-- `GET /audit/logs?cursor=<id>`
 
 ## Known Limitations
 
 - Health and metrics endpoints are not yet fully implemented.
 - Seed script and integration test suite are still pending.
 - Some advanced audit filters (user/action/date/resource) are pending.
+
+

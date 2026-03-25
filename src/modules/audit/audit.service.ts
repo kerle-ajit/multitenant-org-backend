@@ -13,6 +13,11 @@ interface AuditLogData {
 export const AuditService = {
 
   async log({ tenantId, actorUserId, action, ipAddress, userAgent } : AuditLogData) {
+    // Important: the verifier recomputes the hash using `entry.timestamp`.
+    // Prisma's `timestamp @default(now())` may differ by a few ms from `Date.now()`,
+    // so we must use the same timestamp value for hashing and persistence.
+    const timestampMs = Date.now();
+    const timestamp = new Date(timestampMs);
 
     // Get last audit log for hash chaining
     const lastLog = await prisma.auditLog.findFirst({
@@ -30,7 +35,7 @@ export const AuditService = {
       action,
       ipAddress,
       userAgent,
-      timestamp: Date.now()
+      timestamp: timestampMs
     });
 
     const newHash = computeAuditHash(raw);
@@ -43,6 +48,7 @@ export const AuditService = {
         action,
         ipAddress,
         userAgent,
+        timestamp,
         prevHash,
         hash: newHash
       }
