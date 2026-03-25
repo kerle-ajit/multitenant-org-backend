@@ -29,14 +29,7 @@ docker compose down
 
 ## Environment Variables
 
-Used by `docker-compose.yml`:
-- `PORT=4000`
-- `DATABASE_URL=postgresql://postgres:postgres@postgres:5432/multitenant?schema=public`
-- `REDIS_URL=redis://redis:6379`
-- `SMTP_HOST=smtp.ethereal.email`
-- `SMTP_PORT=587`
-- `SMTP_USER=test_user`
-- `SMTP_PASS=test_pass`
+Use your own created by creating .env
 
 ## Core Features Implemented
 
